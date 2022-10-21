@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSON;
 import com.atguigu.domain.Goods;
 import com.atguigu.dao.GoodsMapper;
 import com.mysql.cj.QueryBindings;
+import org.apache.lucene.search.TotalHits;
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.index.IndexRequest;
@@ -12,9 +13,7 @@ import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.common.xcontent.XContentType;
-import org.elasticsearch.index.query.MatchAllQueryBuilder;
-import org.elasticsearch.index.query.QueryBuilder;
-import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.index.query.*;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.SearchHits;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
@@ -121,6 +120,118 @@ public class ElasticsearchTest2 {
         }
     }
 
+    @Test
+    public void testTermQuery() throws IOException{
+        //创建查询对象
+        SearchRequest searchRequest = new SearchRequest("goods");
+        //创建查询Bulider对象
+        SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
+        //
+        TermQueryBuilder termQueryBuilder = QueryBuilders.termQuery("title", "华为");
+        sourceBuilder.query(termQueryBuilder);
+
+        searchRequest.source(sourceBuilder);
+
+        SearchResponse response = client.search(searchRequest, RequestOptions.DEFAULT);
+        //获取查询的内容
+        SearchHits hits = response.getHits();
+
+        //获取记录数
+        TotalHits totalHits = hits.getTotalHits();
+        System.out.println("总记录数:"+totalHits);
+
+        //设置一个list对象进行存储
+        ArrayList<Goods> list = new ArrayList<>();
+        SearchHit[] hitsHits = hits.getHits();
+
+        for (SearchHit hit:hitsHits) {
+            String sourceAsString = hit.getSourceAsString();
+            //将JSON格式转换对GOODS对象
+            Goods goods = JSON.parseObject(sourceAsString, Goods.class);
+            list.add(goods);
+        }
+
+        //对list进行循环遍历
+        for (Goods goods:list) {
+            System.out.println(goods);
+        }
+
+    }
+
+    //模糊查询
+    @Test
+    public void testWildcardQuery() throws  IOException{
+        SearchRequest searchRequest = new SearchRequest("goods");
+
+        SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
+
+        WildcardQueryBuilder wildcardQueryBuilder = QueryBuilders.wildcardQuery("title", "华**");
+
+        sourceBuilder.query(wildcardQueryBuilder);
+        searchRequest.source(sourceBuilder);
+
+        SearchResponse searchResponse = client.search(searchRequest, RequestOptions.DEFAULT);
+
+        SearchHits hits = searchResponse.getHits();
+
+        //获取总记录数据
+        long totalHits = hits.getTotalHits().value;
+        SearchHit[] hitsHits = hits.getHits();
+
+        //创建一个list对象进行存储
+        List<Goods> list = new ArrayList<>();
+
+        for (SearchHit hit :hitsHits) {
+            String sourceAsString = hit.getSourceAsString();
+            //转换成GOODS对象
+            Goods goods = JSON.parseObject(sourceAsString, Goods.class);
+
+            list.add(goods);
+        }
+
+        for (Goods goods:list) {
+            System.out.println(goods);
+        }
+    }
+
+
+    @Test //前缀模糊查询
+    public  void  testPrefixQuery() throws IOException {
+        //创建索引对象
+        SearchRequest searchRequest = new SearchRequest("goods");
+
+        SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
+
+        PrefixQueryBuilder queryBuilder = QueryBuilders.prefixQuery("brandName", "三");
+
+        sourceBuilder.query(queryBuilder);
+        searchRequest.source(sourceBuilder);
+
+        SearchResponse response = client.search(searchRequest,RequestOptions.DEFAULT);
+
+        SearchHits hits = response.getHits();
+
+        //获取总记录数
+        long value = hits.getTotalHits().value;
+
+        System.out.println("总记录数:"+value);
+        SearchHit[] searchHits = hits.getHits();
+
+        //创建list对象进行存储
+        List<Goods> list = new ArrayList();
+
+        for (SearchHit hit: searchHits) {
+            String sourceAsString = hit.getSourceAsString();
+            Goods goods = JSON.parseObject(sourceAsString, Goods.class);
+            list.add(goods);
+
+        }
+        for (Goods goods:list) {
+            System.out.println(goods);
+        }
+
+
+    }
 
 
 }
