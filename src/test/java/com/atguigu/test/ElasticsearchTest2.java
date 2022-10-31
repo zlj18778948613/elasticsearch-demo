@@ -17,6 +17,7 @@ import org.elasticsearch.index.query.*;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.SearchHits;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
+import org.elasticsearch.search.sort.SortOrder;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -227,6 +228,58 @@ public class ElasticsearchTest2 {
 
         }
         for (Goods goods:list) {
+            System.out.println(goods);
+        }
+
+
+    }
+
+    //范围查询
+    @Test
+    public  void  testRangeQuery() throws IOException{
+        //创建查询请求对象
+        SearchRequest searchRequest = new SearchRequest("goods");
+        //创建资源构建器
+        SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
+        //创建查询构建器
+        RangeQueryBuilder query = QueryBuilders.rangeQuery("price");
+
+        //设置查询范围
+        query.gte("2700");
+        query.lte("3000");
+
+        sourceBuilder.query(query);
+
+        //进行排序
+        sourceBuilder.sort("price", SortOrder.DESC);
+
+        searchRequest.source(sourceBuilder);
+
+        //
+        SearchResponse search = client.search(searchRequest, RequestOptions.DEFAULT);
+
+        //获取数据体
+        SearchHits hits = search.getHits();
+
+        //获取记录数
+        long value = hits.getTotalHits().value;
+
+        System.out.println("总记录数"+value);
+
+        ArrayList<Goods> list = new ArrayList<>();
+
+        for (SearchHit hit: hits) {
+            //获取每一行的数据
+            String sourceAsString = hit.getSourceAsString();
+
+            //将JSON转换成Java
+            Goods goods = JSON.parseObject(sourceAsString, Goods.class);
+
+            list.add(goods);
+        }
+
+        for (Goods goods:
+             list) {
             System.out.println(goods);
         }
 
